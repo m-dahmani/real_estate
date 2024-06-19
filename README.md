@@ -1,0 +1,1 @@
+Application Odoo couvrant toutes les fonctionnalités de la plateforme, de A à Z. Développement et configuration complets pour la gestion immobilière.
