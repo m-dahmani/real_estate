@@ -4,6 +4,21 @@ from odoo import http
 from odoo.http import request
 
 
+def invalid_response(error, status):
+    response_body = {
+        'error': error
+    }
+    return request.make_json_response(response_body, status=status)
+
+
+def valid_response(data, status):
+    response_body = {
+        'message': 'successfully',
+        'data': data
+    }
+    return request.make_json_response(response_body, status=status)
+
+
 class PropertyApi(http.Controller):
 
     @http.route('/v1/property', methods=["POST"], type="http", auth="none", csrf=False)
@@ -103,11 +118,11 @@ class PropertyApi(http.Controller):
             print(property_id)
             # Before sending Data you need to add validation layer
             if not property_id:
-                return request.make_json_response({
-                    'error': 'ID Does not exist',
-                }, status=400)
+                # return invalid_response instead request.make_json_response
+                return invalid_response('ID Does not exist', 400)
 
-            return request.make_json_response({
+            # return valid_response instead request.make_json_response
+            return valid_response({
                 # return to user response record read successfully data
                 'message': 'Property has been read successfully',
                 'id': property_id.id,
@@ -115,7 +130,7 @@ class PropertyApi(http.Controller):
                 'ref': property_id.ref,
                 'description': property_id.description,
                 'bedrooms': property_id.bedrooms,
-            }, status=200)  # 200 read
+            }, 200)  # 200 read
         except Exception as error:  # any Exception or error
             return request.make_json_response({
                 'error': error,
@@ -167,8 +182,9 @@ class PropertyApi(http.Controller):
                 return request.make_json_response({
                     'error': 'There are not records',
                 }, status=400)
-        
-            return request.make_json_response([{
+
+            # return valid_response instead request.make_json_response
+            return valid_response([{
                 # return to user response all records read successfully data
                 # 'message': 'Property has been read successfully',
                 'id': property_id.id,
