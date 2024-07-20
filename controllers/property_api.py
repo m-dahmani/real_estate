@@ -1,4 +1,5 @@
 import json
+import math
 from urllib.parse import parse_qs
 from odoo import http
 from odoo.http import request
@@ -11,11 +12,13 @@ def invalid_response(error, status):
     return request.make_json_response(response_body, status=status)
 
 
-def valid_response(data, status):
+def valid_response(data, status, pagination_info):
     response_body = {
         'message': 'successfully',
         'data': data
     }
+    if pagination_info:
+        response_body['pagination_info'] = pagination_info
     return request.make_json_response(response_body, status=status)
 
 
@@ -173,10 +176,33 @@ class PropertyApi(http.Controller):
             if params.get('state'):
                 property_domain = [("state", "=", params.get('state')[0])]
             print(property_domain)
-            
+            # Get [records] with Pagination Dynamic
+            page = offset = None
+            limit = 5
+            if params:
+                if params.get('limit'):
+                    limit = int(params.get('limit')[0])
+                    print(params.get('limit'))
+
+                if params.get('page'):
+                    page = int(params.get('page')[0])
+                    print(params.get('page'))
+
+            if page:
+                offset = (page * limit) - limit
+
             # if search[] empty return all records
-            property_ids = request.env["property"].sudo().search(property_domain)  # Get [records] with filtration
+            # Get [records] with filtration
+            # Get [records] with Pagination Dynamic
+            property_ids = request.env["property"].sudo().search(property_domain, offset=offset, limit=limit, order='id desc')
+            # Get [records] with Pagination Static
+            # property_ids = request.env["property"].sudo().search(property_domain, offset=6, limit=3, order='id desc')
+            property_count = request.env["property"].sudo().search_count(property_domain)
             print(property_ids)
+            print(property_count)
+            print(page)
+            print(limit)
+            print(offset)
             # Before sending Data you need to add validation layer
             if not property_ids:
                 return request.make_json_response({
@@ -193,7 +219,12 @@ class PropertyApi(http.Controller):
                 'description': property_id.description,
                 'bedrooms': property_id.bedrooms,
                 'state': property_id.state,
-            } for property_id in property_ids], status=200)  # 200 read
+            } for property_id in property_ids], pagination_info={
+                'page': page if page else 1,
+                'limit': limit,
+                'pages': math.ceil(property_count / limit) if limit else 1,
+                'count': property_count,
+            }, status=200)  # 200 read
         except Exception as error:  # any Exception or error
             return request.make_json_response({
                 'error': error,
